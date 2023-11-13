@@ -15,3 +15,4 @@ git config --global user.email 1726123207@qq.com
 hexo cl && hexo g && hexo d
 ```
 
++ 该方法适用于多个设备配置博客使用！
