@@ -1565,10 +1565,10 @@ hexo-tag-mmedia@^1.1.7:
     json5 "^2.2.0"
     utility "^1.17.0"
 
-hexo-theme-fluid@^1.8.12:
-  version "1.9.4"
-  resolved "https://registry.yarnpkg.com/hexo-theme-fluid/-/hexo-theme-fluid-1.9.4.tgz#a83dc3e2d24fb74bec2bb32c15b544c055e3445f"
-  integrity sha512-EaXUh4J6mQZjzKnyNtYHt0U0rIIlGJMsiT+IYHhKXnNrQyaOqMz3H9QC7+o37yzssARiPG3Uc0RtHn3S1DRLoQ==
+hexo-theme-fluid@^1.9.7:
+  version "1.9.7"
+  resolved "https://registry.yarnpkg.com/hexo-theme-fluid/-/hexo-theme-fluid-1.9.7.tgz#53a2ef5e7de2dd237af93a6f6cf76df093178afe"
+  integrity sha512-rLpUNcs8XhAQZ9Iq8nZ27XbMDtbJs/y35kkpPmebUqV9hV+j3/Yy3tf3zKJW3nzZhTO/8bXYrtNDvmoj1TRmBQ==
 
 hexo-theme-landscape@^0.0.3:
   version "0.0.3"
