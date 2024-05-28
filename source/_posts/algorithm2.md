@@ -9643,3 +9643,1140 @@ for(int i=1;i<=n/i;i++)
 }
 ```
 ### 大整数运算
++ 对于一道 `A+B` 的题目，如果 `A` 和 `B` 的范围在 `int` 范围内，那么相对比较简单。
++ 但是如果 `A` 和 `B` 是有着 `1000` 个数位的整数，将没有办法用已有的数据类型来表示，这时就只能去模拟**加减乘除**的过程。
++ 大整数又称为**高精度整数**，其含义就是用基本数据类型无法存储其精度的整数。
+#### 大整数的存储
++ 对于大整数的存储，一般使用**数组**即可。
++ 例如定义 `int` 型数组 `d[1000]`，那么这个数组中的每一位就代表了存放的整数的每一位。
++ 如将 `235813` 存储到数组中，则有 `d[0]=3`、`d[1]=1`、`d[2]=8`、`d[3]=5`、`d[4]=3`、`d[5]=2`，即**整数的高位存储在数组的高位，整数的低位存储在数组的低位**。
++ 不反过来存储的原因是，在进行运算的时候都是从整数的低位到高位进行枚举，顺位存储和这种思维相合。
++ 但也会由此产生一个需要注意的问题：
++ 把整数按字符串 `%s` 读入的时候，实际上是逆位存储的，即 `str[0]='2'`、`str[1]='3'`、...、 `str[5]='3'`，因此在读入之后需要在另存为至 `d[]` 数组的时候反转一下。
++ 而为了方便随时获取大整数的长度，一般都会定义一个 `int` 型变量 `len` 来记录其长度，并和 `d` 数组组合成结构体：
+```cpp
+struct bign
+{
+	int d[1000];
+	int len;
+};
+```
++ 上述 `bign` 是 `big number` 的缩写。
++ 显然，在定义结构体变量之后，需要马上初始化结构体。为了减少在实际输入代码的过程中总是忘记初始化的问题，最好使用以前介绍的“构造函数”，即在结构体内部加入以下代码：
+```cpp
+bign()
+{
+	memset(d,0,sizeof(d));
+	len = 0;
+}
+```
++ "构造函数"是用来初始化结构体的函数，函数名和结构体名相同、无返回值，因此非常好写。
++ 因此大整数结构体 `bign` 就变成了这样：
+```cpp
+struct bign
+{
+	int d[1000];
+	int len;
+	bign()
+	{
+		memset(d,0,sizeof(d));
+		len = 0;
+	}
+};
+```
++ 这样在每次定义结构体变量时，都会自动对该变量进行初始化。
++ 而在输入大整数时，一般都是先用字符串读入，然后再把字符串另存至 `bign` 结构体中。由于使用 `char` 数组进行读入时，整数的高位会变成数组的低位，而整数的低位会变成数组的高位，因此为了让整数在 bign 中是顺位存储的，需要让字符串倒着赋给 `d[]` 数组：
+```cpp
+bign change(char str[])//将整数转换为bign
+{
+	bign a;
+	a.len = strlen(str);//bign的长度就是字符串长度
+	for(int i=0;i<a.len;i++)
+	{
+		a.d[i]=str[a.len-i-1]-'0';//逆着赋值
+	}
+	return a;
+}
+```
++ 如果要比较 `bign` 变量的大小，规则也很简单：
++ 先判断两者 `len` 的大小，如果不相等，则以长的为大；如果相等，则从高位到低位进行比较，直到出现某一位不等，就可以判断两个数大小，上述规则的代码如下：
+```cpp
+int compare(bign a,bign b)//比较a和b的大小，a大，相等，a小分别返回1、0、-1
+{
+	if(a.len>b.len)
+		return 1;//a大
+	else if(a.len<b.len)
+		return -1;//a小
+	else
+	{
+		for(int i=a.len-1;i>=0;i--)//从高位往低位比较
+		{
+			if(a.d[i]>b.d[i])
+				return 1;//只要有一位a大，则a大
+			else if(a.d[i]<b.d[i])
+				return -1;//只要有一位a小，则a小
+		}
+		return 0;//两数相等
+	}
+}
+```
+
+例题：[大整数比较](https://sunnywhy.com/sfbj/5/6/217)
++ 代码：
+```cpp
+#include <stdio.h>
+#include <stdlib.h>
+#include <stack>
+#include <cstring>
+#include <iostream>
+#include <utility>
+#include <map>
+#include <algorithm>
+#include <vector>
+#include <climits>
+#include <string>
+#include <ctime>
+#include <cmath>
+#include <sstream>
+#include <set>
+using namespace std;
+
+//结构体
+struct bign
+{
+	int d[1000];
+	int len;
+	bign()
+	{
+		memset(d,0,sizeof(d));
+		len = 0;
+	}
+};
+
+//整数转换为bign函数
+bign change(char str[])//将整数转换为bign
+{
+	bign a;
+	a.len = strlen(str);//bign的长度就是字符串长度
+	for(int i=0;i<a.len;i++)
+	{
+		a.d[i]=str[a.len-i-1]-'0';//逆着赋值
+	}
+	return a;
+}
+
+//比较函数
+int compare(bign a,bign b)//比较a和b的大小，a大，相等，a小分别返回1、0、-1
+{
+	if(a.len>b.len)
+		return 1;//a大
+	else if(a.len<b.len)
+		return -1;//a小
+	else
+	{
+		for(int i=a.len-1;i>=0;i--)//从高位往低位比较
+		{
+			if(a.d[i]>b.d[i])
+				return 1;//只要有一位a大，则a大
+			else if(a.d[i]<b.d[i])
+				return -1;//只要有一位a小，则a小
+		}
+		return 0;//两数相等
+	}
+}
+
+//主函数
+int main()
+{
+    char str1[1000],str2[1000];
+    int num;
+    scanf("%s%s",str1,str2);
+    bign a = change(str1);
+    bign b = change(str2);
+    num = compare(a,b);
+    if(num==1)
+        printf("a > b");
+    else if(num==-1)
+        printf("a < b");
+    else
+        printf("a = b");
+    system("pause");// 防止运行后自动退出，需头文件stdlib.h
+    return 0;
+}
+```
++ 总结：该题目与上述介绍的思路一致，属于简单题。
++ 接下来主要介绍四个运算：
+1. 高精度加法
+2. 高精度减法
+3. 高精度与低精度乘法
+4. 高精度与低精度除法
++ 至于高精度与高精度的乘法和除法，有兴趣自行了解。
+#### 大整数的四则运算
+##### 高精度加法
++ 以 `147+65` 为例：
+
+![](https://yugin-blog-1313489805.cos.ap-guangzhou.myqcloud.com/20231220151738.png)
+1. `7+5=12`，取个位数 `2` 作为该位的结果，取十位数 `1` 进位。
+2. `4+6` 加上进位 `1` 为 `11`，取个位数 `1` 作为该位的结果，取十位数 `1` 进位。
+3. `1+0`，加上进位 `1` 为 `2`，取个位数 `2` 作为该位的结果，由于十位数为 `0`，因此不进位。
++ 可以因此归纳出对其中一位进行加法的步骤：
++ 将该位上的两个数字和进位相加，得到的结果取个位数作为该位结果，取十位数作为新的进位。
++ 高精度加法的做法与此完全相同，实现代码如下：
+```cpp
+bign add(bign a,bign b)//高精度a+b
+{
+	bign c;
+	int carry = 0;//carry是进位
+	for(int i=0;i<a.len||i<b.len;i++)//以较长的为界限
+	{
+		int temp = a.d[i]+b.d[i]+carry;//两个对应位与进位相加
+		c.d[c.len++]=temp % 10;//个位数为该位结果
+		carry = temp / 10;//十位是新的进位
+	}
+	if(carry!=0)//如果最后进位不为0，则直接赋给结果的最高位
+		c.d[c.len++] = carry;
+	return c;
+}
+```
++ 高精度相加的代码大概只有十行，非常简洁，只要懂得原理，基本上可以很容易理解和记住。
+
+例题：[大整数加法](https://sunnywhy.com/sfbj/5/6/218)
++ 代码：
+```cpp
+#include <stdio.h>
+#include <stdlib.h>
+#include <stack>
+#include <cstring>
+#include <iostream>
+#include <utility>
+#include <map>
+#include <algorithm>
+#include <vector>
+#include <climits>
+#include <string>
+#include <ctime>
+#include <cmath>
+#include <sstream>
+#include <set>
+using namespace std;
+
+//结构体
+struct bign
+{
+	int d[1000];
+	int len;
+	bign()
+	{
+		memset(d,0,sizeof(d));
+		len = 0;
+	}
+};
+
+//整数转换为bign函数
+bign change(char str[])//将整数转换为bign
+{
+	bign a;
+	a.len = strlen(str);//bign的长度就是字符串长度
+	for(int i=0;i<a.len;i++)
+	{
+		a.d[i]=str[a.len-i-1]-'0';//逆着赋值
+	}
+	return a;
+}
+
+//比较函数
+int compare(bign a,bign b)//比较a和b的大小，a大，相等，a小分别返回1、0、-1
+{
+	if(a.len>b.len)
+		return 1;//a大
+	else if(a.len<b.len)
+		return -1;//a小
+	else
+	{
+		for(int i=a.len-1;i>=0;i--)//从高位往低位比较
+		{
+			if(a.d[i]>b.d[i])
+				return 1;//只要有一位a大，则a大
+			else if(a.d[i]<b.d[i])
+				return -1;//只要有一位a小，则a小
+		}
+		return 0;//两数相等
+	}
+}
+
+//高精度a+b
+bign add(bign a,bign b)//高精度a+b
+{
+	bign c;
+	int carry = 0;//carry是进位
+	for(int i=0;i<a.len||i<b.len;i++)//以较长的为界限
+	{
+		int temp = a.d[i]+b.d[i]+carry;//两个对应位与进位相加
+		c.d[c.len++]=temp % 10;//个位数为该位结果
+		carry = temp / 10;//十位是新的进位
+	}
+	if(carry!=0)//如果最后进位不为0，则直接赋给结果的最高位
+		c.d[c.len++] = carry;
+	return c;
+}
+
+//主函数
+int main()
+{
+    char str1[1000],str2[1000];
+    int num;
+    scanf("%s%s",str1,str2);
+    bign a = change(str1);
+    bign b = change(str2);
+    bign c = add(a,b);
+    for(int i=c.len-1;i>=0;i--)
+        printf("%d",c.d[i]);
+    printf("\n");
+    system("pause");// 防止运行后自动退出，需头文件stdlib.h
+    return 0;
+}
+```
++ 总结：该题目与上述介绍的思路一致，属于简单题。
+##### 高精度减法
++ 以 `147-65` 为例：
+
+![](https://yugin-blog-1313489805.cos.ap-guangzhou.myqcloud.com/20231220195350.png)
+1. `5-7<0`，不够减，因此从高位 `4` 借 `1`，于是 `4` 减 `1` 变成 `3`，该位结果为 `15-7=8`；
+2. `3-6<0`，不够减，因此从高位 `1` 借 `1`，于是 `1` 减 `1` 变成 `0`，该位结果为 `13-6=7`；
+3. 上面和下面均为 `0`，结束计算。
++ 同样可以得到一个很简练的步骤：
++ 对某一步，比较被减位和减位，如果不够减，则令被减位的高位减 `1`、被减位加 `10` 再进行减法；
++ 如果够减，则直接减。
++ 最后一步要注意减法后高位可能有多余的 0，要忽视它们，但也要保证结果至少有一位数。
++ 代码如下：
+```cpp
+bign sub(bign a,bign b)//高精度a-b
+{
+	bign c;
+	for(int i=0;i<a.len||i<b.len;i++)//以较长的为界限
+	{
+		if(a.d[i]<b.d[i])//如果不够减
+		{
+			a.d[i+1]--;//向高位借位
+			a.d[i]+=10;//当前位加10
+		}
+		c.d[c.len++] = a.d[i]-b.d[i];//减法结果为当前位结果
+	}
+	while(c.len-1>=1&&c.d[c.len-1]==0)
+	{
+		c.len--;
+	}
+	return c;
+}
+```
++ 需要指出的是，使用 `sub()` 函数前要比较两个数的大小，如果被减数小于减数，需要交换两个变量，然后输出负号，再使用 `sub()` 函数。
+
+例题：[大整数减法](https://sunnywhy.com/sfbj/5/6/219)
++ 代码：
+```cpp
+#include <stdio.h>
+#include <stdlib.h>
+#include <stack>
+#include <cstring>
+#include <iostream>
+#include <utility>
+#include <map>
+#include <algorithm>
+#include <vector>
+#include <climits>
+#include <string>
+#include <ctime>
+#include <cmath>
+#include <sstream>
+#include <set>
+using namespace std;
+
+//结构体
+struct bign
+{
+	int d[1000];
+	int len;
+	bign()
+	{
+		memset(d,0,sizeof(d));
+		len = 0;
+	}
+};
+
+//整数转换为bign函数
+bign change(char str[])//将整数转换为bign
+{
+	bign a;
+	a.len = strlen(str);//bign的长度就是字符串长度
+	for(int i=0;i<a.len;i++)
+	{
+		a.d[i]=str[a.len-i-1]-'0';//逆着赋值
+	}
+	return a;
+}
+
+//比较函数
+int compare(bign a,bign b)//比较a和b的大小，a大，相等，a小分别返回1、0、-1
+{
+	if(a.len>b.len)
+		return 1;//a大
+	else if(a.len<b.len)
+		return -1;//a小
+	else
+	{
+		for(int i=a.len-1;i>=0;i--)//从高位往低位比较
+		{
+			if(a.d[i]>b.d[i])
+				return 1;//只要有一位a大，则a大
+			else if(a.d[i]<b.d[i])
+				return -1;//只要有一位a小，则a小
+		}
+		return 0;//两数相等
+	}
+}
+
+//高精度a-b
+bign sub(bign a,bign b)//高精度a-b
+{
+	bign c;
+	for(int i=0;i<a.len||i<b.len;i++)//以较长的为界限
+	{
+		if(a.d[i]<b.d[i])//如果不够减
+		{
+			a.d[i+1]--;//向高位借位
+			a.d[i]+=10;//当前位加10
+		}
+		c.d[c.len++] = a.d[i]-b.d[i];//减法结果为当前位结果
+	}
+	while(c.len-1>=1&&c.d[c.len-1]==0)
+	{
+		c.len--;
+	}
+	return c;
+}
+
+//主函数
+int main()
+{
+    char str1[1000],str2[1000];
+    int num;
+    scanf("%s%s",str1,str2);
+    bign a = change(str1);
+    bign b = change(str2);
+    num = compare(a,b);
+    if(num==-1)//a比b小
+    {
+        bign temp = a;
+        a = b;
+        b = temp;
+        printf("-");
+    }
+    bign c = sub(a,b);
+    for(int i=c.len-1;i>=0;i--)
+        printf("%d",c.d[i]);
+    printf("\n");
+    system("pause");// 防止运行后自动退出，需头文件stdlib.h
+    return 0;
+}
+```
++ 总结：该题目与上述介绍的思路一致，属于简单题。
+##### 高精度与低精度乘法
++ 所谓的低精度就是可以用基本数据类型存储的数据，例如 `int` 型。
++ 以 `147×35` 为例，这里把 `147` 视为高精度 `bign` 型，而 `35` 视为 `int` 类型，并且在下面的过程中，始终将 `35` 作为一个整体看待。
+
+![](https://yugin-blog-1313489805.cos.ap-guangzhou.myqcloud.com/20231220204112.png)
+1. `7×35=245`，取个位数 `5` 作为该位结果，高位部分 `24` 作为进位。
+2. `4×35=140`，加上进位 `24`，得 `164`，取个位数 `4` 为该位结果，高位部分 `16` 作为进位。
+3. `1×35=35`，加上进位 `16`，得 `51`，取个位数 `1` 为该位结果，高位部分 `5` 作为进位。
+4. 接下来没有数相乘了，此时进位还不为 `0`，就把进位 `5` 直接作为结果的高位。
++ 对于某一步而言是这么一个步骤：
++ 取 `bign` 的某位与 `int` 型整体相乘，再与进位相加，所得结果的个位数作为该位结果，高位部分作为新的进位。
++ 代码如下：
+```cpp
+bign multi(bign a,int b)//高精度与低精度乘法
+{
+	bign c;
+	int carry = 0;//进位
+	for(int i=0;i<a.len;i++)
+	{
+		int temp = a.d[i] * b + carry;
+		c.d[c.len++] = temp % 10;//个位作为该位结果
+		carry = temp / 10;//高位部分作为新的进位
+	}
+	while(carry!=0)//和加法不一样，乘法的进位可能不止一位
+	{
+		c.d[c.len++] = carry % 10;
+		carry /= 10;
+	}
+	return c;
+}
+```
++ 完整的 `A×B` 的代码只需要把高精度加法里的 `add()` 函数改成这里的 `multi()` 函数，并注意输入的时候 b 是作为 int 型输入即可。
++ 另外，如果 a 和 b 中存在负数，需要先记录下其负号，然后取它们的绝对值代入函数。
+
+例题：[大整数乘法I](https://sunnywhy.com/sfbj/5/6)
++ 代码：
+```cpp
+#include <stdio.h>
+#include <stdlib.h>
+#include <stack>
+#include <cstring>
+#include <iostream>
+#include <utility>
+#include <map>
+#include <algorithm>
+#include <vector>
+#include <climits>
+#include <string>
+#include <ctime>
+#include <cmath>
+#include <sstream>
+#include <set>
+using namespace std;
+
+//结构体
+struct bign
+{
+	int d[1000];
+	int len;
+	bign()
+	{
+		memset(d,0,sizeof(d));
+		len = 0;
+	}
+};
+
+//整数转换为bign函数
+bign change(char str[])//将整数转换为bign
+{
+	bign a;
+	a.len = strlen(str);//bign的长度就是字符串长度
+	for(int i=0;i<a.len;i++)
+	{
+		a.d[i]=str[a.len-i-1]-'0';//逆着赋值
+	}
+	return a;
+}
+
+//高精度与低精度乘法
+bign multi(bign a,int b)
+{
+	bign c;
+	int carry = 0;//进位
+	for(int i=0;i<a.len;i++)
+	{
+		int temp = a.d[i] * b + carry;
+		c.d[c.len++] = temp % 10;//个位作为该位结果
+		carry = temp / 10;//高位部分作为新的进位
+	}
+	while(carry!=0)//和加法不一样，乘法的进位可能不止一位
+	{
+		c.d[c.len++] = carry % 10;
+        carry /= 10;
+	}
+	return c;
+}
+
+//主函数
+int main()
+{
+    char str1[1000];
+    int num,b;
+    scanf("%s %d",str1,&b);
+    bign a = change(str1);
+    if(b==0)
+        printf("0");
+    else
+    {
+        bign c = multi(a,b);
+        for(int i=c.len-1;i>=0;i--)
+            printf("%d",c.d[i]);
+    }
+    printf("\n");
+    system("pause");// 防止运行后自动退出，需头文件stdlib.h
+    return 0;
+}
+```
++ 总结：该题目与上述介绍的思路一致，属于简单题。
+##### 高精度与低精度除法
++ 除法的计算以 `1234/7` 为例：
+
+![](https://yugin-blog-1313489805.cos.ap-guangzhou.myqcloud.com/20231222131815.png)
+1. `1` 与 `7` 比较，不够除，因此该位商为 `0`，余数为 `1`。
+2. 余数 `1` 与新位 `2` 组合成 `12`，`12` 与 `7` 比较，够除，商为 `1`，余数为 `5`。
+3. 余数 `5` 与新位 `3` 组合成 `53`，`53` 与 `7` 比较，够除，商为 `7`，余数为 `4`。
+4. 余数 `4` 与新位 `4` 组合成 `44`，`44` 与 `7` 比较，够除，商为 `6`，余数为 `2`。
++ 归纳其中某一步的步骤：
++ 上一步的余数乘以 `10` 加上该步的位，得到该步临时的被除数，将其与除数比较：
++ 如果不够除，则该位的商为 `0`；
++ 如果够除，则商即为对应的商，余数即为对应的余数。
++ 最后一步要注意减法后高位可能有多余的 `0`，要忽视它们，但也要保证结果至少有一位数。
++ 代码如下：
+```cpp
+bign divide(bign a,int b,int& r)//高精度除法，r为余数
+{
+	bign c;
+	//被除数的每一位和商的每一位是一一对应的，因此先令长度相等
+	c.len = a.len;
+	for(int i = a.len-1;i>=0;i--)//从高位开始
+	{
+		r = r * 10 + a.d[i];//和上一位遗留的余数组合
+		if(r<b)
+			c.d[i] = 0;//不够除，该位为0
+		else//够除
+		{
+			c.d[i] = r / b;//商
+			r = r % b;//获得新的余数
+		}
+	}
+	while(c.len-1>=1&&c.d[c.len-1]==0)
+	{
+		c.len--;//去除高位的0.同时至少保留一位最低位
+	}
+	return c;
+}
+```
++ 在上述代码中，考虑到函数每次只能返回一个数据，而很多题目里面会经常要求得到余数。
++ 因此把余数写成“引用”的形式直接作为参数传入，或是把 `r` 设成全局变量。
++ 引用的作用是在函数中可以视作直接对原变量进行修改，而不像普通函数参数那样，在函数中的修改不影响原变量的值。这样当函数结束时，`r` 的值就是最终的余数。
+
+例题：[大整数除法](https://sunnywhy.com/sfbj/5/6/222)
++ 代码：
+```cpp
+#include <stdio.h>
+#include <stdlib.h>
+#include <stack>
+#include <cstring>
+#include <iostream>
+#include <utility>
+#include <map>
+#include <algorithm>
+#include <vector>
+#include <climits>
+#include <string>
+#include <ctime>
+#include <cmath>
+#include <sstream>
+#include <set>
+using namespace std;
+
+//结构体
+struct bign
+{
+	int d[1000];
+	int len;
+	bign()
+	{
+		memset(d,0,sizeof(d));
+		len = 0;
+	}
+};
+
+//整数转换为bign函数
+bign change(char str[])//将整数转换为bign
+{
+	bign a;
+	a.len = strlen(str);//bign的长度就是字符串长度
+	for(int i=0;i<a.len;i++)
+	{
+		a.d[i]=str[a.len-i-1]-'0';//逆着赋值
+	}
+	return a;
+}
+
+//高精度除法，r为余数
+bign divide(bign a,int b,int& r)
+{
+	bign c;
+	//被除数的每一位和商的每一位是一一对应的，因此先令长度相等
+	c.len = a.len;
+	for(int i = a.len-1;i>=0;i--)//从高位开始
+	{
+		r = r * 10 + a.d[i];//和上一位遗留的余数组合
+		if(r<b)
+			c.d[i] = 0;//不够除，该位为0
+		else//够除
+		{
+			c.d[i] = r / b;//商
+			r = r % b;//获得新的余数
+		}
+	}
+	while(c.len-1>=1&&c.d[c.len-1]==0)
+	{
+		c.len--;//去除高位的0.同时至少保留一位最低位
+	}
+	return c;
+}
+
+//主函数
+int main()
+{
+    char str1[1000];
+    int num,b,r;
+    scanf("%s %d",str1,&b);
+    bign a = change(str1);
+    if(b==0)
+        printf("undefined");
+    else
+    {
+        bign c = divide(a,b,r);
+        for(int i=c.len-1;i>=0;i--)
+            printf("%d",c.d[i]);
+        printf(" %d",r);
+    }
+    printf("\n");
+    system("pause");// 防止运行后自动退出，需头文件stdlib.h
+    return 0;
+}
+```
++ 总结：该题目与上述介绍的思路一致，属于简单题。
+##### 高精度与高精度乘法
++ 乘法的基本步骤模拟如下图：
+
+![](https://yugin-blog-1313489805.cos.ap-guangzhou.myqcloud.com/20231222162354.png)
+
+ + 不难发现，上述步骤有以下关系：
+$$
+\begin{equation}
+	\begin{split}
+& c_0=a_0 \times b_0 \\
+& c_1=a_1 \times b_0 + a_0 \times b_1 + carry \\
+& c_2=a_2 \times b_0 + a_1 \times b_1 + carry \\
+& c_3=a_2 \times b_1 + carry 
+\end{split}
+\end{equation}
+$$
++ 因此模拟乘法的过程如下：
++ 用其中一个数的每一位 `a.d[i]`（从低位开始）逐位与另一个数的每一位 `b.d[j]` 相乘，结果存储在 `c.d[i+j]` 位，并处理进位。
++ 代码如下：
+```cpp
+//高精度与高精度乘法
+bign multi_high(bign a,bign b)
+{
+	bign c;
+	int carry = 0;//进位
+    int w;
+    for(int i=0;i<a.len;i++)
+    {
+        for(int j=0;j<b.len;j++)
+        {
+            w=i+j;
+            c.d[w] = c.d[w] + a.d[i]*b.d[j];
+            carry = c.d[w] / 10;
+            c.d[w+1] = c.d[w+1] + carry;
+            c.d[w] %= 10;
+        }
+    }
+    c.len = w+2;
+	while(c.len-1>=1&&c.d[c.len-1]==0)
+	{
+		c.len--;//去除高位的0.同时至少保留一位最低位
+	}
+	return c;
+}
+```
+例题：[大整数乘法II](https://sunnywhy.com/sfbj/5/6/221)
++ 代码：
+```cpp
+#include <stdio.h>
+#include <stdlib.h>
+#include <stack>
+#include <cstring>
+#include <iostream>
+#include <utility>
+#include <map>
+#include <algorithm>
+#include <vector>
+#include <climits>
+#include <string>
+#include <ctime>
+#include <cmath>
+#include <sstream>
+#include <set>
+using namespace std;
+
+//结构体
+struct bign
+{
+	int d[10000];
+	int len;
+	bign()
+	{
+		memset(d,0,sizeof(d));
+		len = 0;
+	}
+};
+
+//整数转换为bign函数
+bign change(char str[])//将整数转换为bign
+{
+	bign a;
+	a.len = strlen(str);//bign的长度就是字符串长度
+	for(int i=0;i<a.len;i++)
+	{
+		a.d[i]=str[a.len-i-1]-'0';//逆着赋值
+	}
+	return a;
+}
+
+//高精度与高精度乘法
+bign multi_high(bign a,bign b)
+{
+	bign c;
+	int carry = 0;//进位
+    int w;
+    for(int i=0;i<a.len;i++)
+    {
+        for(int j=0;j<b.len;j++)
+        {
+            w=i+j;
+            c.d[w] = c.d[w] + a.d[i]*b.d[j];
+            carry = c.d[w] / 10;
+            c.d[w+1] = c.d[w+1] + carry;
+            c.d[w] %= 10;
+        }
+    }
+    c.len = w+2;
+	while(c.len-1>=1&&c.d[c.len-1]==0)
+	{
+		c.len--;//去除高位的0.同时至少保留一位最低位
+	}
+	return c;
+}
+
+//主函数
+int main()
+{
+    char str1[1000],str2[1000];
+    int num;
+    scanf("%s%s",str1,str2);
+    bign a = change(str1);
+    bign b = change(str2);
+    bign c = multi_high(a,b);
+    for(int i=c.len-1;i>=0;i--)
+        printf("%d",c.d[i]);
+    printf("\n");
+    system("pause");// 防止运行后自动退出，需头文件stdlib.h
+    return 0;
+}
+```
++ 总结：该题目与上述介绍的思路一致，属于简单题。
+### 扩展欧几里得算法
++ 本节主要分为 `4` 个部分：
+1. 扩展欧几里得算法（即 `ax+by=gcd(a,b)` 的求解）
+2. 方程 `ax+by=c` 的求解
+3. 同余式 `ax=c(mod m)` 的求解
+4. 逆元的求解以及 `(b/a)%m` 的计算。
++ 本节数学证明较多，需要认真领会。
+#### 扩展欧几里得算法
++ 扩展欧几里得算法用来解决这样一个问题：
++ 给定两个非零整数 `a` 和 `b` ，求一组整数解 `(x,y)`，使得 `ax+by=gcd(a,b)`，其中 `gcd(a,b)` 表示 `a` 和 `b` 的最大公约数。
++ 通过相关定理可知解一定存在，为了讨论问题方便，记 `gcd=gcd(a,b)`，其中 `a` 和 `b` 为初始给定的数值，因此可以认为在下面讨论的过程中 `gcd` 是一个固定的数。
++ 通过回忆之前介绍的欧几里得算法，如下代码所示：
+```cpp
+int gcd(int a,int b)
+{
+	if(b==0)
+		return a;
+	else
+		return gcd(b,a%b);
+}
+```
++ 它总是把 `gcd(a,b)` 转化为求解 `gcd(b,a%b)`，而当 `b` 变为 `0` 时返回 `a`，此时的 `a` 就等于 `gcd`。
++ 也就是说，欧几里得算法结束的时候变量 `a` 中存放的是 `gcd`，变量 `b` 中存放的是 `0`,因此此时显然有 `a*1+b*0=gcd` 成立，此时有 `x=1`、`y=0` 成立。
++ 不妨利用上面欧几里得算法的过程来计算 `x` 和 `y`。目前已知的是递归边界成立时为 `x=1`、`y=0`，需要想办法反推出**最初始**的 `x` 和 `y`。
++ 当计算 `gcd(a,b)` 时，有 $ax_1+by_1=gcd$ 成立；
++ 而在下一步计算 `gcd(b,a%b)` 时，又有 $bx_2+(a\%b)y_2=gcd$ 成立。
++ 又考虑到有关系 $a\%b=a-(a/b)*b$ 成立（此处除法为**整除**）；
++ 因此 $ax_1+by_1=bx_2+(a-(a/b)*b)y_2$ 成立（此处除法为**整除**）；
++ 整理等号右边式子得：$ax_1+by_1=ay_2+b(x_2-(a/b)y_2)$。
++ 对比等号左右两边可以马上得到下面的递推公式：
+$$\left
+\{\begin{array} 
+{l}x_{1}=y_{2}
+\\ y_{1}=x_{2}-(a/b)y_{2}
+\end{array}
+\right.
+$$
++ 由此便可以通过 $x_2$ 和 $y_2$ 来反推出 $x_1$ 和 $y_1$ 了，只需要在达到递归边界、不断退出的过程中根据上面的公式计算 x 和 y，就可以得到一组解。代码如下：
+```cpp
+int exGcd(int a,int b,int &x,int &y)//x和y使用引用
+{
+	if(b==0)
+	{
+		x=1;
+		y=0;
+		return a;
+	}
+	int g = exGcd(b,a%b,x,y);//递归计算exGcd(b,a%b,x,y)
+	int temp = x;//存放x的值
+	x=y;//更新x=y(old)
+	y=temp-a/b*y;//更新y=x(old)-a/b*y(old)
+	return g;//g是gcd
+}
+```
++ 由于使用了引用，因此当 `exGcd()` 函数结束时 `x` 和 `y` 就是所求的解。
++ 显然，在得到这样一组解之后，就可以通过下面的式子得到全部解：
+
+![](https://yugin-blog-1313489805.cos.ap-guangzhou.myqcloud.com/20231224134635.png)
++ 下面来简单证明：
++ 假设新的解为 $x+s_1$ 、$y-s_2$，即有 $a*(x+s_1)+b*(y-s_2)=gcd$ 成立，通过代入 $ax+by=gcd$ 可以得到 $as_1=bs_2$，于是 $\frac{s_{1}}{s_{2}}=\frac{b}{a}$ 成立。
++ 为了让 $s_1$ 和 $s_2$ 尽可能小，可以让分子和分母同时除以一个尽可能大的数，同时保证它们仍然是整数。
++ 显然，由于 $\frac{b}{gcd}$ 与 $\frac{a}{gcd}$ 互质，因此 `gcd` 是允许作为除数的最大数 $\frac{s_{1}}{s_{2}}=\frac{b}{a}=\frac{\frac{b}{gcd}}{\frac{a}{gcd}}$，得 $s_1$ 和 $s_2$ 的最小取值是 $\frac{b}{gcd}$ 与 $\frac{a}{gcd}$，证毕！
++ 也就是说，`x` 和 `y` 的所有解分别以 $\frac{b}{gcd}$ 与 $\frac{a}{gcd}$ 为周期。
++ 那么其中 x 的最小非负整数解是什么呢？
++ 从直观上来看就是 $x\%\frac{b}{gcd}$。
++ 但是由于通过 `exGcd()` 函数计算出来的 `x`、`y` 可正可负，因此实际上 $x\%\frac{b}{gcd}$ 会得到一个负数，例如 `(-15)%4=-3`。
++ 考虑到即便 `x` 是负数，$x\%\frac{b}{gcd}$ 的范围也是在 $(-x\%\frac{b}{gcd},0)$，因此对任意整数而言，$(x\%\frac{b}{gcd}+\frac{b}{gcd})\%\frac{b}{gcd}$ 才是对应的最小非负整数解。
++ 特殊的，如果 `gcd==1`，全部解的公式简化为下式，且 `x` 的最小非负整数解也可以简化为 $(x\%b+b)\%b$。全部解为：
+
+![](https://yugin-blog-1313489805.cos.ap-guangzhou.myqcloud.com/20231224142141.png)
+例题：[二元一次方程的整数解](https://sunnywhy.com/sfbj/5/7/224)
++ 代码：
+```cpp
+#include <stdio.h>
+#include <stdlib.h>
+#include <stack>
+#include <cstring>
+#include <iostream>
+#include <utility>
+#include <map>
+#include <algorithm>
+#include <vector>
+#include <climits>
+#include <string>
+#include <ctime>
+#include <cmath>
+#include <sstream>
+using namespace std;
+
+//求解最大公约数函数(递归算法)
+int gcd(int a,int b)
+{
+    if(b==0)
+        return a;
+    else
+        return gcd(b,a%b);
+}
+
+//扩展欧几里得算法
+int exGcd(int a,int b,int &x,int &y)//x和y使用引用
+{
+	if(b==0)
+	{
+		x=1;
+		y=0;
+		return a;
+	}
+	int g = exGcd(b,a%b,x,y);//递归计算exGcd(b,a%b,x,y)
+	int temp = x;//存放x的值
+	x=y;//更新x=y(old)
+	y=temp-a/b*y;//更新y=x(old)-a/b*y(old)
+	return g;//g是gcd
+}
+
+//主函数
+int main()
+{
+    int a,b;
+    scanf("%d %d",&a,&b);
+    int x,y,g;
+    g=exGcd(a,b,x,y);
+    int x_ans,y_ans;
+    x_ans=(x%(b/g)+b/g)%(b/g);
+    y_ans=(g-a*x_ans)/b;
+    printf("%d %d\n",x_ans,y_ans);
+    system("pause");// 防止运行后自动退出，需头文件stdlib.h
+    return 0;
+}
+```
++ 总结：该题目与上述介绍的思路一致，属于简单题。
+#### 方程 ax+by=c 的求解
++ 至此我们已经知道如何求解 `ax+by=gcd` 的解，其最常见的应用就是用来求解 `ax+by=c`，其中 `c` 为任意整数。
++ 首先，假设 `ax+by=gcd` 有一组解 $(x_0,y_0)$，现在在其等号两边同时乘 $\frac{c}{gcd}$，即有 $a\frac{cx_0}{gcd}+b\frac{cy_0}{gcd}=c$ 成立，因此 $(x,y)=(\frac{cx_0}{gcd},\frac{cy_0}{gcd})$ 是 `ax+by=c` 的一组解。
++ 但是显然这样做的充要条件是 `c%gcd==0`，否则第一步在等号两边同时乘 $\frac{c}{gcd}$ 都无法做到。
++ 于是 `ax+by=c` 存在解的充要条件是 `c%gcd==0`，且一组解 $(x,y)=(\frac{cx_0}{gcd},\frac{cy_0}{gcd})$ 。
++ 为了获得全部解的公式，可以模仿之前的做法，假设新的解为 $x+s_1$ 、$y-s_2$，然后将 $a(x+s_1)+b(y-s_2)=c$ 与 $ax+by=c$ 联立，发现同样可以得到 $\frac{s_{1}}{s_{2}}=\frac{b}{a}$ 成立。
++ 于是因为同样的原因，$s_1$ 和 $s_2$ 的最小值仍然是 $\frac{b}{gcd}$ 与 $\frac{a}{gcd}$。因此 $ax+by=c$ 的全部解的公式为：
+
+![](https://yugin-blog-1313489805.cos.ap-guangzhou.myqcloud.com/20231224152717.png)
++ 由此会发现与 $ax+by=gcd$ 全部解的公式是一样的，唯一不同的是初始解 $(x,y)$ 不同。
++ 因此对 $ax+by=c$ 来说，其解 $(x,y)$ 同样分别以 $\frac{b}{gcd}$ 与 $\frac{a}{gcd}$ 为周期。
++ 除此之外，可以得到和上面一样的结论，对任意整数来说，$(x\%\frac{b}{gcd}+\frac{b}{gcd})\%\frac{b}{gcd}$ 是 $ax+by=c$ 中 $x$ 的最小非负整数，一般来说可以让 $x$ 取 $\frac{cx_0}{gcd}$，其中 $x_0$ 是 $ax+by=gcd$ 的一个解。
++ 并且，如果 `gcd==1`，那么全部解的公式可以化简为下式，且 $x$ 的最小非负整数解可以简化为 $(x\%b+b)\%b$。全部解为：
+
+![](https://yugin-blog-1313489805.cos.ap-guangzhou.myqcloud.com/20231224153906.png)
+例题：[二元一次方程的整数解II](https://sunnywhy.com/sfbj/5/7/225)
++ 代码：
+```cpp
+#include <stdio.h>
+#include <stdlib.h>
+#include <stack>
+#include <cstring>
+#include <iostream>
+#include <utility>
+#include <map>
+#include <algorithm>
+#include <vector>
+#include <climits>
+#include <string>
+#include <ctime>
+#include <cmath>
+#include <sstream>
+using namespace std;
+
+//求解最大公约数函数(递归算法)
+int gcd(int a,int b)
+{
+    if(b==0)
+        return a;
+    else
+        return gcd(b,a%b);
+}
+
+//扩展欧几里得算法
+int exGcd(int a,int b,int &x,int &y)//x和y使用引用
+{
+	if(b==0)
+	{
+		x=1;
+		y=0;
+		return a;
+	}
+	int g = exGcd(b,a%b,x,y);//递归计算exGcd(b,a%b,x,y)
+	int temp = x;//存放x的值
+	x=y;//更新x=y(old)
+	y=temp-a/b*y;//更新y=x(old)-a/b*y(old)
+	return g;//g是gcd
+}
+
+//主函数
+int main()
+{
+    int a,b,c;
+    scanf("%d %d %d",&a,&b,&c);
+    if(c%gcd(a,b)!=0)
+        printf("No Solution\n");
+    else
+    {
+        int x,y,g;
+        g=exGcd(a,b,x,y);
+        int x_ans,y_ans;
+        //分b/g的正负
+        if(b/g<0)
+            x_ans=((x*c/g)%(b/g)-b/g)%(b/g);
+        else
+            x_ans=((x*c/g)%(b/g)+b/g)%(b/g);
+        y_ans=(c-a*x_ans)/b;
+        printf("%d %d\n",x_ans,y_ans);
+    }
+    system("pause");// 防止运行后自动退出，需头文件stdlib.h
+    return 0;
+}
+```
++ 总结：这道题目需要注意 `b/g` 是否为负数，其余部分上述介绍的思路一致，属于简单题。
+#### 同余式 ax=c(mod m)的求解
++ 既然已经解决了 $ax+by=c$ 的求解问题, 不得不提及同余式 $ax\equiv c(mod \ m)$ 的求解。
++ 先解释什么是**同余式**：
++ 对整数 `a`、`b`、`m` 来说，如果 `m` 整除 `a-b`（即 `(a-b)%m=0`），那么就说 `a` 与 `b` 模 `m` 同余，对应的同余式为 $a\equiv b(mod \ m)$，`m` 称为同余式的模。
++ 例如 `10` 与 `13` 模 `3` 同余，`10` 也与 `1` 模 `3` 同余，它们分别记为 $10\equiv 13(mod \ 3)$、$10\equiv 1(mod \ 3)$。
++ 显然，每一个整数都各自与 `[0,m)` 中的唯一的整数同余。
++ 此处要解决的就是同余式 $ax\equiv c(mod \ m)$ 的求解。
++ 根据同余式的定义，有 $(ax-c)\% m=0$ 成立，因此存在整数 `y`，使得 `ax-c=my` 成立，移项并令 `y=-y` 后即得 `ax+my=c`。
++ 由上节结论，当 `c%gcd(a,m)==0` 时方程才有解，且解的形式如下，其中 `(x,y)` 是 `ax+my=c` 的一组解，可以先通过求解 `ax+my=gcd(a,m)` 得到 $(x_0,y_0)$，然后由公式 $(x,y)=(\frac{cx_0}{gcd(a,m)},\frac{cy_0}{gcd(a,m)})$ 直接得到。
+
+![](https://yugin-blog-1313489805.cos.ap-guangzhou.myqcloud.com/20231224211924.png)
++ 虽然对方程 `ax+my=c` 来说，`K` 可以取任意整数，但是对同余式来说会有很多解在模 `m` 意义下是相同的（由于只关心 `x`，因此下面只考虑 `x`）。
++ 对同余式来说，只需要找出那些在模 `m` 意义下不同的解。
++ 因此考虑 $x^{ \prime } =x+\frac { m }{ gcd(a,m )}*K$，会发现当 `K` 分别取 `0`、`1`、`2`、...、`gcd(a,m)-1` 时，所得到的解在模 `m` 意义下是不同的，而其他解都可以对应到 `K` 取这 `gcd(a,m)` 个数值之一。
++ 由此可以得到结论：
++ 设 `a`, `c`, `m` 是整数，其中 `m≥1`，则
+1. 若 `c%gcd(a,m)!=0`，则同余式方程 $ax\equiv c(mod \ m)$ 无解；
+2. 若 `c%gcd(a,m)==0`，则同余式方程 $ax\equiv c(mod \ m)$ 恰好有 `gcd(a,m)` 个模 m 意义下不同的解，且解的形式为：
+$$ x^{\prime}=x+\frac{m}{gcd(a,m)}*K$$
++ 其中 `K=0,1,...,gcd(a,m)-1`，`x` 是 `ax+my=c` 的一个解。
+
+例题：[同余式方程](https://sunnywhy.com/sfbj/5/7/226)
++ 代码：
+```cpp
+#include <stdio.h>
+#include <stdlib.h>
+#include <stack>
+#include <cstring>
+#include <iostream>
+#include <utility>
+#include <map>
+#include <algorithm>
+#include <vector>
+#include <climits>
+#include <string>
+#include <ctime>
+#include <cmath>
+#include <sstream>
+using namespace std;
+
+//求解最大公约数函数(递归算法)
+int gcd(int a,int b)
+{
+    if(b==0)
+        return a;
+    else
+        return gcd(b,a%b);
+}
+
+//扩展欧几里得算法
+int exGcd(int a,int b,int &x,int &y)//x和y使用引用
+{
+	if(b==0)
+	{
+		x=1;
+		y=0;
+		return a;
+	}
+	int g = exGcd(b,a%b,x,y);//递归计算exGcd(b,a%b,x,y)
+	int temp = x;//存放x的值
+	x=y;//更新x=y(old)
+	y=temp-a/b*y;//更新y=x(old)-a/b*y(old)
+	return g;//g是gcd
+}
+
+//主函数
+int main()
+{
+    int a,c,m;
+    scanf("%d %d %d",&a,&c,&m);
+    if(c%gcd(a,m)==0)
+    {
+        int x,y,g;
+        g=exGcd(a,m,x,y);
+        int x_ans;
+        //分m/g的正负
+        if(m/g<0)
+            x_ans=((x*c/g)%(m/g)-m/g)%(m/g);
+        else
+            x_ans=((x*c/g)%(m/g)+m/g)%(m/g);
+        printf("%d\n",x_ans);
+    }
+    else
+        printf("No Solution\n");
+    system("pause");// 防止运行后自动退出，需头文件stdlib.h
+    return 0;
+}
+```
++ 总结：这道题目需要注意 `m/g` 是否为负数，其余部分上述介绍的思路一致，属于简单题。
+#### 逆元求解以及 (b/a)%m 的计算
++ 接着解决最后一个问题，假设 `a`、`m` 是整数，求 `a` 模 `m` 的逆元。
++ 先解释什么是**逆元**（此处特指**乘法逆元**）：
++ 假设 `a`、`b`、`m` 是整数，`m＞1`，且有 $ab\equiv 1(mod \ m)$ 成立，那么就说 `a` 和 `b` 互为模 `m` 的逆元，一般也记作 $a\equiv \frac{1}{b}(mod \ m)$ 或 $b\equiv \frac{1}{a}(mod \ m)$。
++ 通俗地说，如果两个整数的乘积模 `m` 后等于 `1`，就称它们互为**逆元**。
++ 那么逆元有什么用处呢？
++ 对于乘法来说有 $(b×a) \% m = ((b \% m)×(a \% m))\% m$ 成立。
++ 但是对除法来说 $(b÷a) \% m = ((b \% m)÷(a \% m))\% m$ 却不成立；
++ 同时 $(b÷a) \% m = ((b \% m)÷a)\% m$ 也不成立。
++ 例如，如果要对 `12÷4` 对 `2` 取模，采用 $((12 \% 2)÷4)\% 2$ 的做法会得到错误的结果 `0`，而实际上应当是 `1`。这时就需要逆元来计算 $(b÷a)\% m$。
++ 通过找到 `a` 模 `m` 的逆元 `x`, 就有 $(b÷a) \% m = (b×x) \% m$ 成立（只考虑整数取模，也即假设 `b%a=0`，即 `b` 是 `a` 的整数倍），于是就把除法取模转化为乘法取模，这对于解决除数 `b` 非常大（使得 `b` 已经取过模，不是原始值）的问题来说是非常实用的。
++ 由定义知，求 `a` 模 `m` 的逆元，就是求解同余式 $ax\equiv 1(mod \ m)$，并且在实际使用中，一般把 `x` 的**最小正整数**称为 `a` 模 `m` 的逆元，因此下文提到的逆元都是默认为 `x` 的**最小正整数解**。
++ 显然，同余式 $ax\equiv 1(mod \ m)$ 是否有解取决于 `1%gcd(a,m)` 是否为 `0`，而这等价于 `gcd(a,m)` 是否为 `1`：
+1. 如果 `gcd(a,m)≠1`，那么同余式 $ax\equiv 1(mod \ m)$ 无解，`a` 不存在模 `m` 的逆元。
+2. 如果 `gcd(a,m)=1`，那么同余式 $ax\equiv 1(mod \ m)$ 在 `(0,m)` 上有唯一解，可以通过求解 $ax+my=1$ 得到。
++ 注意：由于 `gcd(a,m)=1`，因此 `ax+my=1=gcd(a,m)`，直接使用扩展欧几里得算法解出 `x` 之后就可以用 `(x%m+m)%m` 得到在 `(0,m)` 范围内的解，也就是所需要的逆元。
